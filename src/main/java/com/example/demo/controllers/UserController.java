@@ -28,6 +28,8 @@ import javax.validation.Valid;
 @RequestMapping("/api/user")
 public class UserController {
 
+	Logger logger = LoggerFactory.getLogger(UserController.class);
+
 	@Autowired
 	private UserRepository userRepository;
 
@@ -61,6 +63,7 @@ public class UserController {
 		}
 		user.setPassword(bCryptPasswordEncoder.encode(createUserRequest.getPassword()));
 		userRepository.save(user);
+		logger.info("User Created successfully");
 		return ResponseEntity.ok(user);
 	}
 	
