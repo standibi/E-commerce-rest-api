@@ -1,9 +1,12 @@
 package com.example.demo.integration;
 
+import com.example.demo.model.persistence.User;
+import com.example.demo.model.persistence.repositories.UserRepository;
 import com.example.demo.model.requests.CreateUserRequest;
 import com.example.demo.security.SecurityConstants;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
@@ -15,6 +18,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.json.JacksonTester;
 import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -42,21 +46,37 @@ public class AuthenticationTest {
     private MockMvc mvc;
 
     @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
     private JacksonTester<LoginRequest> json;
+
+    @Autowired
+    private BCryptPasswordEncoder encoder;
 
     private String token;
 
+    private LoginRequest loginRequest;
+
     private ObjectMapper mapper = new ObjectMapper();
 
+    @Before
+    public void setUp(){
+        User user = new User();
+        user.setUsername("user");
+        user.setPassword(encoder.encode("stanislas"));
+        userRepository.save(user);
+        loginRequest = new LoginRequest("user", "stanislas");
+    }
+
     @Test
-    public void test() throws Exception {
+    public void registered_user_can_login() throws Exception {
         MockHttpServletResponse response = mvc.perform(
                 post(new URI("/login"))
-                    .content(json.write(new LoginRequest("user", "password")).getJson()))
+                    .content(mapper.writeValueAsString(loginRequest)))
                 .andExpect(status().isOk())
                 .andReturn()
                 .getResponse();
-        log.info(response.toString());
 
     }
 
@@ -65,11 +85,13 @@ public class AuthenticationTest {
         CreateUserRequest createUserRequest = new CreateUserRequest();
         createUserRequest.setPassword("stanislas");
         createUserRequest.setPassword_confirmation("stanislas");
-        createUserRequest.setUsername("dibi");
+        createUserRequest.setUsername("stanislas");
 
         mvc.perform(
                 post(new URI("/api/user/create"))
-                        .content(mapper.writeValueAsString(createUserRequest))).andExpect(status().isOk());
+                        .header("Content-Type", "application/json")
+                        .content(mapper.writeValueAsString(createUserRequest)))
+                .andExpect(status().isOk());
     }
 
     @Test
