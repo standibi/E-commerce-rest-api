@@ -3,9 +3,9 @@ package com.example.demo.integration;
 import com.example.demo.model.persistence.User;
 import com.example.demo.model.persistence.repositories.UserRepository;
 import com.example.demo.model.requests.CreateUserRequest;
-import com.example.demo.security.SecurityConstants;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -21,24 +21,23 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 
-import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-import static org.mockito.Mockito.when;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = RANDOM_PORT)
 @AutoConfigureMockMvc
 @AutoConfigureJsonTesters
-public class AuthenticationTest {
+public class AuthTest {
 
-    Logger log = LoggerFactory.getLogger(AuthenticationTest.class);
+    Logger log = LoggerFactory.getLogger(AuthTest.class);
     @LocalServerPort
     private int port;
 
@@ -61,7 +60,7 @@ public class AuthenticationTest {
     private ObjectMapper mapper = new ObjectMapper();
 
     @Before
-    public void setUp(){
+    public  void setUp(){
         User user = new User();
         user.setUsername("user");
         user.setPassword(encoder.encode("stanislas"));
@@ -69,14 +68,23 @@ public class AuthenticationTest {
         loginRequest = new LoginRequest("user", "stanislas");
     }
 
+    @After
+    public void tearDown(){
+        User user = userRepository.findByUsername("user");
+        userRepository.delete(user);
+    }
+
     @Test
     public void registered_user_can_login() throws Exception {
-        MockHttpServletResponse response = mvc.perform(
-                post(new URI("/login"))
-                    .content(mapper.writeValueAsString(loginRequest)))
+        login("user", "stanislas")
                 .andExpect(status().isOk())
-                .andReturn()
-                .getResponse();
+                .andExpect(header().exists("Authorization"));
+//                .andReturn()
+//                .getResponse();
+
+//        String authorizationHeader = response.getHeader("Authorization");
+//        String[] s = authorizationHeader.split(" ");
+//        System.out.println("token "+s[1]);
 
     }
 
@@ -85,7 +93,7 @@ public class AuthenticationTest {
         CreateUserRequest createUserRequest = new CreateUserRequest();
         createUserRequest.setPassword("stanislas");
         createUserRequest.setPassword_confirmation("stanislas");
-        createUserRequest.setUsername("stanislas");
+        createUserRequest.setUsername("test_user");
 
         mvc.perform(
                 post(new URI("/api/user/create"))
@@ -106,32 +114,12 @@ public class AuthenticationTest {
                 post(new URI("/history/stanislas")))
                 .andExpect(status().is4xxClientError());
     }
-}
 
-class LoginRequest{
-    @JsonProperty
-    private String username;
-    @JsonProperty
-    private String password;
-
-    public LoginRequest(String username, String password) {
-        this.username = username;
-        this.password = password;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
+    private ResultActions login (String username, String password) throws Exception {
+        final ResultActions perform = mvc.perform(
+                post(new URI("/login"))
+                        .content(mapper.writeValueAsString(new LoginRequest(username, password))));
+        return perform;
     }
 }
+
