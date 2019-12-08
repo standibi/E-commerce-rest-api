@@ -2,7 +2,8 @@ node {
     stage 'Clone the project'
     git 'https://github.com/standibi/UJDN-eCommerce-Application.git'
 
-    dir('e-commerce-pipeline') {
+    dir('.') {
+    sh "chmod +x mvnw"
 
         stage("Tests and Deployment") {
             parallel 'Unit tests': {
