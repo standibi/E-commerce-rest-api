@@ -3,7 +3,9 @@ node {
     git 'https://github.com/standibi/UJDN-eCommerce-Application.git'
 
     dir('.') {
-    sh "chmod +x mvnw"
+    try {
+        sh "chmod +x mvnw"
+     }catch(err){}
 
         stage("Tests and Deployment") {
             parallel 'Unit tests': {
