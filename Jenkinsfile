@@ -1,6 +1,6 @@
 node {
     stage 'Clone the project'
-    git 'https://github.com/standibi/UJDN-eCommerce-Application.git'
+    git 'https://github.com/standibi/E-commerce-rest-api.git'
 
     dir('.') {
     try {
